@@ -4,331 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>15-Day Backend Bootcamp Tracker</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 20px;
-            min-height: 100vh;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            overflow: hidden;
-        }
-
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
-        }
-
-        .header h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
-        }
-
-        .header p {
-            font-size: 1.1em;
-            opacity: 0.95;
-        }
-
-        .controls {
-            padding: 20px 30px;
-            background: #f8f9fa;
-            border-bottom: 2px solid #e9ecef;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 15px;
-        }
-
-        .progress-container {
-            flex: 1;
-            min-width: 300px;
-        }
-
-        .progress-label {
-            font-size: 14px;
-            font-weight: 600;
-            color: #495057;
-            margin-bottom: 8px;
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 30px;
-            background: #e9ecef;
-            border-radius: 15px;
-            overflow: hidden;
-            position: relative;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #28a745, #20c997);
-            transition: width 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: bold;
-            font-size: 14px;
-        }
-
-        .button-group {
-            display: flex;
-            gap: 10px;
-        }
-
-        .btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 6px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 14px;
-        }
-
-        .btn-export {
-            background: #28a745;
-            color: white;
-        }
-
-        .btn-export:hover {
-            background: #218838;
-            transform: translateY(-2px);
-        }
-
-        .btn-reset {
-            background: #dc3545;
-            color: white;
-        }
-
-        .btn-reset:hover {
-            background: #c82333;
-            transform: translateY(-2px);
-        }
-
-        .table-container {
-            overflow-x: auto;
-            padding: 0 30px 30px 30px;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 14px;
-        }
-
-        thead {
-            background: #495057;
-            color: white;
-            position: sticky;
-            top: 0;
-            z-index: 10;
-        }
-
-        th {
-            padding: 15px 12px;
-            text-align: left;
-            font-weight: 600;
-            font-size: 13px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        tbody tr {
-            border-bottom: 1px solid #dee2e6;
-            transition: background 0.2s ease;
-        }
-
-        tbody tr:hover {
-            background: #f8f9fa;
-        }
-
-        td {
-            padding: 15px 12px;
-            vertical-align: top;
-        }
-
-        .day-cell {
-            font-weight: 700;
-            color: #667eea;
-            font-size: 16px;
-            min-width: 80px;
-        }
-
-        .topic-cell {
-            font-weight: 600;
-            color: #212529;
-            min-width: 200px;
-        }
-
-        .tasks-cell {
-            color: #495057;
-            line-height: 1.6;
-            min-width: 300px;
-        }
-
-        .tasks-cell ul {
-            margin: 0;
-            padding-left: 20px;
-        }
-
-        .tasks-cell li {
-            margin: 5px 0;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .task-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            cursor: pointer;
-            padding: 4px 0;
-        }
-
-        .task-item:hover {
-            background: #f0f0f0;
-            border-radius: 4px;
-            padding-left: 4px;
-        }
-
-        .task-checkbox {
-            width: 18px;
-            height: 18px;
-            cursor: pointer;
-            accent-color: #28a745;
-            flex-shrink: 0;
-        }
-
-        .task-text {
-            flex: 1;
-            transition: all 0.2s ease;
-        }
-
-        .task-completed {
-            text-decoration: line-through;
-            color: #6c757d;
-            opacity: 0.7;
-        }
-
-        .resources-cell {
-            min-width: 250px;
-        }
-
-        .resource-link {
-            display: inline-block;
-            margin: 4px 0;
-            padding: 6px 12px;
-            background: #e7f3ff;
-            color: #0366d6;
-            text-decoration: none;
-            border-radius: 4px;
-            font-size: 12px;
-            transition: all 0.2s ease;
-        }
-
-        .resource-link:hover {
-            background: #0366d6;
-            color: white;
-            transform: translateX(3px);
-        }
-
-        .time-cell {
-            font-weight: 600;
-            color: #fd7e14;
-            white-space: nowrap;
-        }
-
-        .checkbox-cell {
-            text-align: center;
-            min-width: 80px;
-        }
-
-        .checkbox-custom {
-            width: 24px;
-            height: 24px;
-            cursor: pointer;
-            accent-color: #28a745;
-        }
-
-        .completed-row {
-            background: #d4edda !important;
-        }
-
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            padding: 20px 30px;
-            background: #f8f9fa;
-        }
-
-        .stat-card {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            text-align: center;
-        }
-
-        .stat-value {
-            font-size: 2.5em;
-            font-weight: 700;
-            color: #667eea;
-            margin-bottom: 5px;
-        }
-
-        .stat-label {
-            font-size: 14px;
-            color: #6c757d;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        @media (max-width: 768px) {
-            .controls {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            .progress-container {
-                min-width: 100%;
-            }
-
-            th, td {
-                padding: 10px 8px;
-                font-size: 12px;
-            }
-
-            .header h1 {
-                font-size: 1.8em;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🚀 15-Day Backend Engineering Bootcamp</h1>
-            <p>Java + Spring Boot | Banking, Healthcare, Insurance & AI/ML Ready</p>
+            <h1>15-Day Backend Engineering Bootcamp</h1>
+            <p style="margin-top: 10px; font-size: 0.9em; opacity: 0.9;">
+                <span id="syncStatus">Synced</span> | 
+                <span style="font-size: 0.85em;">Device ID: <span id="userIdDisplay"></span></span>
+            </p>
         </div>
 
         <div class="stats">
@@ -353,12 +40,6 @@
                     <div class="progress-fill" id="progressFill">0%</div>
                 </div>
             </div>
-            <div class="button-group">
-                <button class="btn btn-export" onclick="exportToCSV()">📥 Export CSV</button>
-                <button class="btn btn-export" onclick="exportToJSON()" style="background: #17a2b8;">💾 Export JSON</button>
-                <button class="btn btn-export" onclick="importFromJSON()" style="background: #ffc107; color: #212529;">📤 Import JSON</button>
-                <button class="btn btn-reset" onclick="resetProgress()">🔄 Reset All</button>
-            </div>
         </div>
 
         <div class="table-container">
@@ -370,7 +51,7 @@
                         <th>Key Tasks</th>
                         <th>Free Resources</th>
                         <th>Time</th>
-                        <th>Done ✓</th>
+                        <th>Done</th>
                     </tr>
                 </thead>
                 <tbody id="tableBody">
@@ -551,87 +232,304 @@
             "8-10 hrs": 9
         };
 
-        // Storage Manager using IndexedDB
-        const StorageManager = {
-            dbName: 'BootcampTrackerDB',
-            dbVersion: 1,
-            db: null,
+        // Supabase Configuration
+        const SUPABASE_URL = 'https://aqjjgmmvviozmedjgxdy.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFxampnbW12dmlvem1lZGpneGR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEzMjA5MTUsImV4cCI6MjA3Njg5NjkxNX0.XCQQfVAGDTnDqC4W6RHMd8Rmj3C8UyFUmE-S18JVLWk';
+        
+        // Initialize Supabase client
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        
+        // Generate or retrieve unique user ID for this device
+        function getUserId() {
+            let userId = localStorage.getItem('bootcamp_user_id');
+            if (!userId) {
+                userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                localStorage.setItem('bootcamp_user_id', userId);
+            }
+            return userId;
+        }
+        
+        const userId = getUserId();
 
+        // SQLite Database Manager using sql.js (for offline/local storage)
+        const StorageManager = {
+            db: null,
+            SQL: null,
+            dbName: 'bootcamp_tracker.db',
+            
             async init() {
-                return new Promise((resolve, reject) => {
-                    const request = indexedDB.open(this.dbName, this.dbVersion);
+                try {
+                    // Initialize SQL.js
+                    this.SQL = await initSqlJs({
+                        locateFile: file => `https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/${file}`
+                    });
                     
-                    request.onerror = () => reject(request.error);
+                    // Try to load existing database from IndexedDB
+                    const savedDb = await this.loadFromIndexedDB();
+                    
+                    if (savedDb) {
+                        this.db = new this.SQL.Database(savedDb);
+                    } else {
+                        // Create new database
+                        this.db = new this.SQL.Database();
+                        this.createTables();
+                    }
+                    
+                    return this.db;
+                } catch (error) {
+                    console.error('SQL.js initialization failed:', error);
+                    throw error;
+                }
+            },
+            
+            createTables() {
+                this.db.run(`
+                    CREATE TABLE IF NOT EXISTS completed_days (
+                        day_index INTEGER PRIMARY KEY,
+                        completed_at TEXT NOT NULL
+                    )
+                `);
+                
+                this.db.run(`
+                    CREATE TABLE IF NOT EXISTS completed_tasks (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        day_index INTEGER NOT NULL,
+                        task_index INTEGER NOT NULL,
+                        completed_at TEXT NOT NULL,
+                        UNIQUE(day_index, task_index)
+                    )
+                `);
+                
+                this.db.run(`
+                    CREATE TABLE IF NOT EXISTS metadata (
+                        key TEXT PRIMARY KEY,
+                        value TEXT NOT NULL,
+                        updated_at TEXT NOT NULL
+                    )
+                `);
+                
+                this.saveToIndexedDB();
+            },
+            
+            async loadFromIndexedDB() {
+                return new Promise((resolve) => {
+                    const request = indexedDB.open('SQLiteStorage', 1);
+                    
+                    request.onerror = () => resolve(null);
                     request.onsuccess = () => {
-                        this.db = request.result;
-                        resolve(this.db);
+                        const db = request.result;
+                        if (!db.objectStoreNames.contains('files')) {
+                            resolve(null);
+                            return;
+                        }
+                        const transaction = db.transaction(['files'], 'readonly');
+                        const store = transaction.objectStore('files');
+                        const getRequest = store.get(this.dbName);
+                        getRequest.onsuccess = () => {
+                            resolve(getRequest.result ? getRequest.result.data : null);
+                        };
+                        getRequest.onerror = () => resolve(null);
                     };
                     
                     request.onupgradeneeded = (event) => {
                         const db = event.target.result;
-                        
-                        // Create object stores if they don't exist
-                        if (!db.objectStoreNames.contains('completedDays')) {
-                            db.createObjectStore('completedDays', { keyPath: 'id' });
-                        }
-                        if (!db.objectStoreNames.contains('completedTasks')) {
-                            db.createObjectStore('completedTasks', { keyPath: 'id' });
-                        }
-                        if (!db.objectStoreNames.contains('metadata')) {
-                            db.createObjectStore('metadata', { keyPath: 'key' });
+                        if (!db.objectStoreNames.contains('files')) {
+                            db.createObjectStore('files');
                         }
                     };
                 });
             },
-
+            
+            async saveToIndexedDB() {
+                if (!this.db) return;
+                
+                const data = this.db.export();
+                return new Promise((resolve, reject) => {
+                    const request = indexedDB.open('SQLiteStorage', 1);
+                    
+                    request.onerror = () => reject(request.error);
+                    request.onsuccess = () => {
+                        const db = request.result;
+                        const transaction = db.transaction(['files'], 'readwrite');
+                        const store = transaction.objectStore('files');
+                        const putRequest = store.put({ name: this.dbName, data: data });
+                        putRequest.onsuccess = () => resolve();
+                        putRequest.onerror = () => reject(putRequest.error);
+                    };
+                    
+                    request.onupgradeneeded = (event) => {
+                        const db = event.target.result;
+                        if (!db.objectStoreNames.contains('files')) {
+                            db.createObjectStore('files');
+                        }
+                    };
+                });
+            },
+            
             async getCompletedDays() {
-                return new Promise((resolve, reject) => {
-                    const transaction = this.db.transaction(['completedDays'], 'readonly');
-                    const store = transaction.objectStore('completedDays');
-                    const request = store.get('days');
+                // Try to get from Supabase first, fallback to local
+                try {
+                    const { data, error } = await supabase
+                        .from('completed_days')
+                        .select('day_index')
+                        .eq('user_id', userId)
+                        .order('day_index');
                     
-                    request.onsuccess = () => {
-                        resolve(request.result ? request.result.value : []);
-                    };
-                    request.onerror = () => reject(request.error);
-                });
+                    if (!error && data) {
+                        const days = data.map(row => row.day_index);
+                        // Sync to local
+                        await this.saveCompletedDaysLocal(days);
+                        return days;
+                    }
+                } catch (error) {
+                    console.log('Supabase sync failed, using local:', error);
+                }
+                
+                // Fallback to local SQLite
+                const result = this.db.exec('SELECT day_index FROM completed_days ORDER BY day_index');
+                if (result.length === 0) return [];
+                return result[0].values.map(row => row[0]);
             },
-
+            
             async saveCompletedDays(days) {
-                return new Promise((resolve, reject) => {
-                    const transaction = this.db.transaction(['completedDays'], 'readwrite');
-                    const store = transaction.objectStore('completedDays');
-                    const request = store.put({ id: 'days', value: days, updatedAt: new Date().toISOString() });
+                // Save to Supabase (cloud)
+                try {
+                    // Delete existing
+                    await supabase
+                        .from('completed_days')
+                        .delete()
+                        .eq('user_id', userId);
                     
-                    request.onsuccess = () => resolve();
-                    request.onerror = () => reject(request.error);
-                });
+                    // Insert new
+                    if (days.length > 0) {
+                        const records = days.map(dayIndex => ({
+                            day_index: dayIndex,
+                            user_id: userId
+                        }));
+                        
+                        await supabase
+                            .from('completed_days')
+                            .insert(records);
+                    }
+                } catch (error) {
+                    console.error('Failed to sync to cloud:', error);
+                }
+                
+                // Also save locally
+                await this.saveCompletedDaysLocal(days);
             },
 
+            async saveCompletedDaysLocal(days) {
+                // Clear existing
+                this.db.run('DELETE FROM completed_days');
+                
+                // Insert new
+                const stmt = this.db.prepare('INSERT INTO completed_days (day_index, completed_at) VALUES (?, ?)');
+                const now = new Date().toISOString();
+                days.forEach(dayIndex => {
+                    stmt.run([dayIndex, now]);
+                });
+                stmt.free();
+                
+                await this.saveToIndexedDB();
+            },
+            
             async getCompletedTasks() {
-                return new Promise((resolve, reject) => {
-                    const transaction = this.db.transaction(['completedTasks'], 'readonly');
-                    const store = transaction.objectStore('completedTasks');
-                    const request = store.get('tasks');
+                // Try to get from Supabase first, fallback to local
+                try {
+                    const { data, error } = await supabase
+                        .from('completed_tasks')
+                        .select('day_index, task_index')
+                        .eq('user_id', userId)
+                        .order('day_index, task_index');
                     
-                    request.onsuccess = () => {
-                        resolve(request.result ? request.result.value : {});
-                    };
-                    request.onerror = () => reject(request.error);
+                    if (!error && data) {
+                        const tasks = {};
+                        data.forEach(row => {
+                            const dayIndex = row.day_index;
+                            const taskIndex = row.task_index;
+                            if (!tasks[dayIndex]) {
+                                tasks[dayIndex] = [];
+                            }
+                            tasks[dayIndex].push(taskIndex);
+                        });
+                        // Sync to local
+                        await this.saveCompletedTasksLocal(tasks);
+                        return tasks;
+                    }
+                } catch (error) {
+                    console.log('Supabase sync failed, using local:', error);
+                }
+                
+                // Fallback to local SQLite
+                const result = this.db.exec('SELECT day_index, task_index FROM completed_tasks');
+                if (result.length === 0) return {};
+                
+                const tasks = {};
+                result[0].values.forEach(row => {
+                    const dayIndex = row[0];
+                    const taskIndex = row[1];
+                    if (!tasks[dayIndex]) {
+                        tasks[dayIndex] = [];
+                    }
+                    tasks[dayIndex].push(taskIndex);
                 });
+                
+                return tasks;
             },
-
+            
             async saveCompletedTasks(tasks) {
-                return new Promise((resolve, reject) => {
-                    const transaction = this.db.transaction(['completedTasks'], 'readwrite');
-                    const store = transaction.objectStore('completedTasks');
-                    const request = store.put({ id: 'tasks', value: tasks, updatedAt: new Date().toISOString() });
+                // Save to Supabase (cloud)
+                try {
+                    // Delete existing
+                    await supabase
+                        .from('completed_tasks')
+                        .delete()
+                        .eq('user_id', userId);
                     
-                    request.onsuccess = () => resolve();
-                    request.onerror = () => reject(request.error);
-                });
+                    // Insert new
+                    const records = [];
+                    Object.keys(tasks).forEach(dayIndex => {
+                        tasks[dayIndex].forEach(taskIndex => {
+                            records.push({
+                                day_index: parseInt(dayIndex),
+                                task_index: parseInt(taskIndex),
+                                user_id: userId
+                            });
+                        });
+                    });
+                    
+                    if (records.length > 0) {
+                        await supabase
+                            .from('completed_tasks')
+                            .insert(records);
+                    }
+                } catch (error) {
+                    console.error('Failed to sync to cloud:', error);
+                }
+                
+                // Also save locally
+                await this.saveCompletedTasksLocal(tasks);
             },
 
+            async saveCompletedTasksLocal(tasks) {
+                // Clear existing
+                this.db.run('DELETE FROM completed_tasks');
+                
+                // Insert new
+                const stmt = this.db.prepare('INSERT INTO completed_tasks (day_index, task_index, completed_at) VALUES (?, ?, ?)');
+                const now = new Date().toISOString();
+                
+                Object.keys(tasks).forEach(dayIndex => {
+                    tasks[dayIndex].forEach(taskIndex => {
+                        stmt.run([parseInt(dayIndex), parseInt(taskIndex), now]);
+                    });
+                });
+                stmt.free();
+                
+                await this.saveToIndexedDB();
+            },
+            
             async exportData() {
                 const [days, tasks] = await Promise.all([
                     this.getCompletedDays(),
@@ -639,31 +537,30 @@
                 ]);
                 return { completedDays: days, completedTasks: tasks };
             },
-
+            
             async importData(data) {
                 await Promise.all([
                     this.saveCompletedDays(data.completedDays || []),
                     this.saveCompletedTasks(data.completedTasks || {})
                 ]);
             },
-
+            
             async clearAll() {
-                return new Promise((resolve, reject) => {
-                    const transaction = this.db.transaction(['completedDays', 'completedTasks'], 'readwrite');
-                    
-                    Promise.all([
-                        new Promise((res, rej) => {
-                            const req = transaction.objectStore('completedDays').clear();
-                            req.onsuccess = () => res();
-                            req.onerror = () => rej(req.error);
-                        }),
-                        new Promise((res, rej) => {
-                            const req = transaction.objectStore('completedTasks').clear();
-                            req.onsuccess = () => res();
-                            req.onerror = () => rej(req.error);
-                        })
-                    ]).then(() => resolve()).catch(reject);
-                });
+                this.db.run('DELETE FROM completed_days');
+                this.db.run('DELETE FROM completed_tasks');
+                await this.saveToIndexedDB();
+            },
+            
+            // Export database as SQLite file
+            async exportDatabase() {
+                const data = this.db.export();
+                return data;
+            },
+            
+            // Import database from SQLite file
+            async importDatabase(arrayBuffer) {
+                this.db = new this.SQL.Database(new Uint8Array(arrayBuffer));
+                await this.saveToIndexedDB();
             }
         };
 
@@ -672,11 +569,59 @@
         let completedTasks = {};
         let storageReady = false;
 
+        // Real-time sync setup
+        function setupRealtimeSync() {
+            // Subscribe to changes in completed_days
+            supabase
+                .channel('completed_days_changes')
+                .on('postgres_changes', 
+                    { event: '*', schema: 'public', table: 'completed_days', filter: `user_id=eq.${userId}` },
+                    async (payload) => {
+                        console.log('Real-time update received:', payload);
+                        // Reload data from cloud
+                        completedDays = await StorageManager.getCompletedDays();
+                        completedTasks = await StorageManager.getCompletedTasks();
+                        renderTable();
+                    }
+                )
+                .subscribe();
+
+            // Subscribe to changes in completed_tasks
+            supabase
+                .channel('completed_tasks_changes')
+                .on('postgres_changes',
+                    { event: '*', schema: 'public', table: 'completed_tasks', filter: `user_id=eq.${userId}` },
+                    async (payload) => {
+                        console.log('Real-time update received:', payload);
+                        // Reload data from cloud
+                        completedDays = await StorageManager.getCompletedDays();
+                        completedTasks = await StorageManager.getCompletedTasks();
+                        renderTable();
+                    }
+                )
+                .subscribe();
+        }
+
         // Initialize storage on page load
+        let syncStatus = 'offline';
         StorageManager.init().then(async () => {
             storageReady = true;
+            
+            // Load data (will try cloud first, fallback to local)
             completedDays = await StorageManager.getCompletedDays();
             completedTasks = await StorageManager.getCompletedTasks();
+            
+            // Setup real-time sync
+            setupRealtimeSync();
+            syncStatus = 'online';
+            updateSyncStatus();
+            
+            // Display user ID
+            const userIdDisplay = document.getElementById('userIdDisplay');
+            if (userIdDisplay) {
+                userIdDisplay.textContent = userId.substring(0, 20) + '...';
+            }
+            
             renderTable();
         }).catch((error) => {
             console.error('Storage initialization failed:', error);
@@ -684,8 +629,19 @@
             completedDays = JSON.parse(localStorage.getItem('completedDays')) || [];
             completedTasks = JSON.parse(localStorage.getItem('completedTasks')) || {};
             storageReady = true;
+            syncStatus = 'offline';
+            updateSyncStatus();
             renderTable();
         });
+
+        // Update sync status indicator
+        function updateSyncStatus() {
+            const statusEl = document.getElementById('syncStatus');
+            if (statusEl) {
+                statusEl.textContent = syncStatus === 'online' ? 'Synced' : 'Offline';
+                statusEl.style.color = syncStatus === 'online' ? '#28a745' : '#dc3545';
+            }
+        }
 
         function renderTable() {
             const tbody = document.getElementById('tableBody');
@@ -729,7 +685,7 @@
                     </td>
                     <td class="resources-cell">
                         ${day.resources.map(res => 
-                            `<a href="${res.url}" target="_blank" class="resource-link">📺 ${res.name}</a><br>`
+                            `<a href="${res.url}" target="_blank" class="resource-link">${res.name}</a><br>`
                         ).join('')}
                     </td>
                     <td class="time-cell">${day.time}</td>
@@ -779,8 +735,8 @@
             
             if (allTasksCompleted) {
                 // If all tasks are done, uncheck day (which will uncheck all tasks)
-                if (completedDays.includes(index)) {
-                    completedDays = completedDays.filter(d => d !== index);
+            if (completedDays.includes(index)) {
+                completedDays = completedDays.filter(d => d !== index);
                 }
                 // Uncheck all tasks
                 delete completedTasks[index];
@@ -791,8 +747,8 @@
                 // If not all tasks done, check all tasks
                 completedTasks[index] = bootcampData[index].tasks.map((_, i) => i);
                 if (!completedDays.includes(index)) {
-                    completedDays.push(index);
-                }
+                completedDays.push(index);
+            }
                 if (storageReady) {
                     await StorageManager.saveCompletedTasks(completedTasks);
                 }
@@ -836,82 +792,6 @@
             progressFill.textContent = taskPercentage + '%';
         }
 
-        async function resetProgress() {
-            if (confirm('Are you sure you want to reset all progress? This cannot be undone.')) {
-                completedDays = [];
-                completedTasks = {};
-                if (storageReady) {
-                    await StorageManager.clearAll();
-                } else {
-                    localStorage.removeItem('completedDays');
-                    localStorage.removeItem('completedTasks');
-                }
-                renderTable();
-            }
-        }
-
-        function exportToCSV() {
-            let csv = 'Day,Topic,Tasks,Completed Tasks,Resources,Time,Day Completed\n';
-            
-            bootcampData.forEach((day, index) => {
-                const dayCompletedTasks = completedTasks[index] || [];
-                const tasks = day.tasks.map((task, taskIndex) => {
-                    const isCompleted = dayCompletedTasks.includes(taskIndex);
-                    return `${isCompleted ? '✓' : '○'} ${task}`;
-                }).join(' | ');
-                const completedTasksList = dayCompletedTasks.length > 0 
-                    ? dayCompletedTasks.map(i => day.tasks[i]).join(' | ')
-                    : 'None';
-                const resources = day.resources.map(r => `${r.name}: ${r.url}`).join(' | ');
-                const dayCompleted = completedDays.includes(index) ? 'Yes' : 'No';
-                
-                csv += `"${day.day}","${day.topic}","${tasks}","${completedTasksList}","${resources}","${day.time}","${dayCompleted}"\n`;
-            });
-
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = '15-day-backend-bootcamp.csv';
-            a.click();
-        }
-
-        async function exportToJSON() {
-            const data = await StorageManager.exportData();
-            const json = JSON.stringify(data, null, 2);
-            const blob = new Blob([json], { type: 'application/json' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `bootcamp-progress-${new Date().toISOString().split('T')[0]}.json`;
-            a.click();
-        }
-
-        async function importFromJSON() {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = 'application/json';
-            input.onchange = async (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
-                
-                try {
-                    const text = await file.text();
-                    const data = JSON.parse(text);
-                    
-                    if (confirm('This will replace all current progress. Continue?')) {
-                        await StorageManager.importData(data);
-                        completedDays = data.completedDays || [];
-                        completedTasks = data.completedTasks || {};
-                        renderTable();
-                        alert('Data imported successfully!');
-                    }
-                } catch (error) {
-                    alert('Error importing file: ' + error.message);
-                }
-            };
-            input.click();
-        }
 
         // Initialize - render will be called after storage is ready
         if (!storageReady) {
