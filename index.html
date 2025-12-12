@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>15-Day Backend Bootcamp Tracker</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
     <link rel="stylesheet" href="css/styles.css">
     <script src="https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
@@ -313,7 +314,7 @@
             
             async loadFromIndexedDB() {
                 return new Promise((resolve) => {
-                    const request = indexedDB.open('SQLiteStorage', 1);
+                    const request = indexedDB.open('SQLiteStorage', 2);
                     
                     request.onerror = () => resolve(null);
                     request.onsuccess = () => {
@@ -322,20 +323,28 @@
                             resolve(null);
                             return;
                         }
-                        const transaction = db.transaction(['files'], 'readonly');
-                        const store = transaction.objectStore('files');
-                        const getRequest = store.get(this.dbName);
-                        getRequest.onsuccess = () => {
-                            resolve(getRequest.result ? getRequest.result.data : null);
-                        };
-                        getRequest.onerror = () => resolve(null);
+                        try {
+                            const transaction = db.transaction(['files'], 'readonly');
+                            const store = transaction.objectStore('files');
+                            const getRequest = store.get(this.dbName);
+                            getRequest.onsuccess = () => {
+                                resolve(getRequest.result ? getRequest.result.data : null);
+                            };
+                            getRequest.onerror = () => resolve(null);
+                        } catch (error) {
+                            console.log('Error reading from IndexedDB:', error);
+                            resolve(null);
+                        }
                     };
                     
                     request.onupgradeneeded = (event) => {
                         const db = event.target.result;
-                        if (!db.objectStoreNames.contains('files')) {
-                            db.createObjectStore('files');
+                        // Delete old store if it exists without keyPath
+                        if (db.objectStoreNames.contains('files')) {
+                            db.deleteObjectStore('files');
                         }
+                        // Create new store with keyPath
+                        db.createObjectStore('files', { keyPath: 'name' });
                     };
                 });
             },
@@ -345,7 +354,7 @@
                 
                 const data = this.db.export();
                 return new Promise((resolve, reject) => {
-                    const request = indexedDB.open('SQLiteStorage', 1);
+                    const request = indexedDB.open('SQLiteStorage', 2);
                     
                     request.onerror = () => reject(request.error);
                     request.onsuccess = () => {
@@ -360,7 +369,7 @@
                     request.onupgradeneeded = (event) => {
                         const db = event.target.result;
                         if (!db.objectStoreNames.contains('files')) {
-                            db.createObjectStore('files');
+                            db.createObjectStore('files', { keyPath: 'name' });
                         }
                     };
                 });
@@ -392,30 +401,35 @@
             },
             
             async saveCompletedDays(days) {
-                // Save to Supabase (cloud)
+                // Save to Supabase (cloud) - but don't fail if it errors
                 try {
                     // Delete existing
-                    await supabase
+                    const { error: deleteError } = await supabase
                         .from('completed_days')
                         .delete()
                         .eq('user_id', userId);
                     
-                    // Insert new
-                    if (days.length > 0) {
+                    if (!deleteError && days.length > 0) {
+                        // Insert new
                         const records = days.map(dayIndex => ({
                             day_index: dayIndex,
                             user_id: userId
                         }));
                         
-                        await supabase
+                        const { error: insertError } = await supabase
                             .from('completed_days')
                             .insert(records);
+                        
+                        if (insertError) {
+                            console.log('Supabase insert failed (continuing with local):', insertError.message);
+                        }
                     }
                 } catch (error) {
-                    console.error('Failed to sync to cloud:', error);
+                    // Silently continue - local storage will work
+                    console.log('Supabase sync failed (continuing with local):', error.message);
                 }
                 
-                // Also save locally
+                // Always save locally (this is the primary storage)
                 await this.saveCompletedDaysLocal(days);
             },
 
@@ -443,7 +457,7 @@
                         .eq('user_id', userId)
                         .order('day_index, task_index');
                     
-                    if (!error && data) {
+                    if (!error && data && data.length > 0) {
                         const tasks = {};
                         data.forEach(row => {
                             const dayIndex = row.day_index;
@@ -458,57 +472,71 @@
                         return tasks;
                     }
                 } catch (error) {
-                    console.log('Supabase sync failed, using local:', error);
+                    // Silently fail and use local storage
+                    console.log('Supabase sync failed, using local:', error.message);
                 }
                 
                 // Fallback to local SQLite
-                const result = this.db.exec('SELECT day_index, task_index FROM completed_tasks');
-                if (result.length === 0) return {};
-                
-                const tasks = {};
-                result[0].values.forEach(row => {
-                    const dayIndex = row[0];
-                    const taskIndex = row[1];
-                    if (!tasks[dayIndex]) {
-                        tasks[dayIndex] = [];
+                if (this.db) {
+                    try {
+                        const result = this.db.exec('SELECT day_index, task_index FROM completed_tasks');
+                        if (result.length > 0 && result[0].values) {
+                            const tasks = {};
+                            result[0].values.forEach(row => {
+                                const dayIndex = row[0];
+                                const taskIndex = row[1];
+                                if (!tasks[dayIndex]) {
+                                    tasks[dayIndex] = [];
+                                }
+                                tasks[dayIndex].push(taskIndex);
+                            });
+                            return tasks;
+                        }
+                    } catch (dbError) {
+                        console.log('SQLite query failed:', dbError);
                     }
-                    tasks[dayIndex].push(taskIndex);
-                });
-                
-                return tasks;
+                }
+                return {};
             },
             
             async saveCompletedTasks(tasks) {
-                // Save to Supabase (cloud)
+                // Save to Supabase (cloud) - but don't fail if it errors
                 try {
                     // Delete existing
-                    await supabase
+                    const { error: deleteError } = await supabase
                         .from('completed_tasks')
                         .delete()
                         .eq('user_id', userId);
                     
-                    // Insert new
-                    const records = [];
-                    Object.keys(tasks).forEach(dayIndex => {
-                        tasks[dayIndex].forEach(taskIndex => {
-                            records.push({
-                                day_index: parseInt(dayIndex),
-                                task_index: parseInt(taskIndex),
-                                user_id: userId
+                    if (!deleteError) {
+                        // Insert new
+                        const records = [];
+                        Object.keys(tasks).forEach(dayIndex => {
+                            tasks[dayIndex].forEach(taskIndex => {
+                                records.push({
+                                    day_index: parseInt(dayIndex),
+                                    task_index: parseInt(taskIndex),
+                                    user_id: userId
+                                });
                             });
                         });
-                    });
-                    
-                    if (records.length > 0) {
-                        await supabase
-                            .from('completed_tasks')
-                            .insert(records);
+                        
+                        if (records.length > 0) {
+                            const { error: insertError } = await supabase
+                                .from('completed_tasks')
+                                .insert(records);
+                            
+                            if (insertError) {
+                                console.log('Supabase insert failed (continuing with local):', insertError.message);
+                            }
+                        }
                     }
                 } catch (error) {
-                    console.error('Failed to sync to cloud:', error);
+                    // Silently continue - local storage will work
+                    console.log('Supabase sync failed (continuing with local):', error.message);
                 }
                 
-                // Also save locally
+                // Always save locally (this is the primary storage)
                 await this.saveCompletedTasksLocal(tasks);
             },
 
