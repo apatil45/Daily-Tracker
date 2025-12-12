@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>15-Day Backend Bootcamp Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.95;
+        }
+
+        .controls {
+            padding: 20px 30px;
+            background: #f8f9fa;
+            border-bottom: 2px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .progress-container {
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .progress-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 8px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #e9ecef;
+            border-radius: 15px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #28a745, #20c997);
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .btn-export {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-export:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+
+        .btn-reset {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-reset:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+
+        .table-container {
+            overflow-x: auto;
+            padding: 0 30px 30px 30px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        thead {
+            background: #495057;
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        th {
+            padding: 15px 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        tbody tr {
+            border-bottom: 1px solid #dee2e6;
+            transition: background 0.2s ease;
+        }
+
+        tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        td {
+            padding: 15px 12px;
+            vertical-align: top;
+        }
+
+        .day-cell {
+            font-weight: 700;
+            color: #667eea;
+            font-size: 16px;
+            min-width: 80px;
+        }
+
+        .topic-cell {
+            font-weight: 600;
+            color: #212529;
+            min-width: 200px;
+        }
+
+        .tasks-cell {
+            color: #495057;
+            line-height: 1.6;
+            min-width: 300px;
+        }
+
+        .tasks-cell ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+
+        .tasks-cell li {
+            margin: 5px 0;
+        }
+
+        .resources-cell {
+            min-width: 250px;
+        }
+
+        .resource-link {
+            display: inline-block;
+            margin: 4px 0;
+            padding: 6px 12px;
+            background: #e7f3ff;
+            color: #0366d6;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .resource-link:hover {
+            background: #0366d6;
+            color: white;
+            transform: translateX(3px);
+        }
+
+        .time-cell {
+            font-weight: 600;
+            color: #fd7e14;
+            white-space: nowrap;
+        }
+
+        .checkbox-cell {
+            text-align: center;
+            min-width: 80px;
+        }
+
+        .checkbox-custom {
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            accent-color: #28a745;
+        }
+
+        .completed-row {
+            background: #d4edda !important;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 20px 30px;
+            background: #f8f9fa;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        @media (max-width: 768px) {
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .progress-container {
+                min-width: 100%;
+            }
+
+            th, td {
+                padding: 10px 8px;
+                font-size: 12px;
+            }
+
+            .header h1 {
+                font-size: 1.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 15-Day Backend Engineering Bootcamp</h1>
+            <p>Java + Spring Boot | Banking, Healthcare, Insurance & AI/ML Ready</p>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-value" id="completedDays">0</div>
+                <div class="stat-label">Days Completed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalHours">0</div>
+                <div class="stat-label">Hours Invested</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="completionRate">0%</div>
+                <div class="stat-label">Completion Rate</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="progress-container">
+                <div class="progress-label">Overall Progress</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill">0%</div>
+                </div>
+            </div>
+            <div class="button-group">
+                <button class="btn btn-export" onclick="exportToCSV()">📥 Export CSV</button>
+                <button class="btn btn-reset" onclick="resetProgress()">🔄 Reset All</button>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table id="bootcampTable">
+                <thead>
+                    <tr>
+                        <th>Day</th>
+                        <th>Topic</th>
+                        <th>Key Tasks</th>
+                        <th>Free Resources</th>
+                        <th>Time</th>
+                        <th>Done ✓</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const bootcampData = [
+            {
+                day: "Day 0",
+                topic: "Setup & Preparation",
+                tasks: ["Install Java JDK 17+", "Install IntelliJ IDEA", "Install PostgreSQL", "Install Postman", "Install Git", "Install Docker", "Create GitHub account", "Create Railway account", "Create AWS Free Tier"],
+                resources: [
+                    { name: "Java JDK", url: "https://adoptium.net/" },
+                    { name: "IntelliJ IDEA", url: "https://www.jetbrains.com/idea/download/" }
+                ],
+                time: "2-3 hrs"
+            },
+            {
+                day: "Day 1",
+                topic: "Java OOP Fundamentals",
+                tasks: ["Learn Classes & Objects", "Study Inheritance & Polymorphism", "Understand Encapsulation", "Master Exception Handling", "Build Banking System project", "Push to GitHub: day1-java-oop"],
+                resources: [
+                    { name: "Java OOP - Mosh", url: "https://www.youtube.com/watch?v=xk4_1vDrzzo" },
+                    { name: "Java Full Course - Bro Code", url: "https://www.youtube.com/watch?v=xk4_1vDrzzo" }
+                ],
+                time: "5-6 hrs"
+            },
+            {
+                day: "Day 2",
+                topic: "SOLID Principles",
+                tasks: ["Study all 5 SOLID principles", "Refactor Day 1 code with SOLID", "Implement Factory Pattern", "Implement Strategy Pattern", "Create UML diagram", "Push to GitHub: day2-solid"],
+                resources: [
+                    { name: "SOLID - Web Dev Simplified", url: "https://www.youtube.com/watch?v=_jDNAf3CzeY" },
+                    { name: "Design Patterns - Mosh", url: "https://www.youtube.com/watch?v=NU_1StN5Tkk" }
+                ],
+                time: "5-6 hrs"
+            },
+            {
+                day: "Day 3",
+                topic: "Git & Version Control",
+                tasks: ["Complete Learn Git Branching", "Practice branching & merging", "Create 3 feature branches", "Resolve merge conflicts", "Create 3 Pull Requests", "Push 15+ commits"],
+                resources: [
+                    { name: "Git & GitHub - freeCodeCamp", url: "https://www.youtube.com/watch?v=RGOj5yH7evk" },
+                    { name: "Learn Git Branching", url: "https://learngitbranching.js.org/" }
+                ],
+                time: "4-5 hrs"
+            },
+            {
+                day: "Day 4",
+                topic: "HTTP & REST API Design",
+                tasks: ["Study HTTP methods & status codes", "Learn REST principles", "Design 11 banking endpoints", "Document request/response", "Define error responses", "Push API spec to GitHub"],
+                resources: [
+                    { name: "REST API - Telusko", url: "https://www.youtube.com/watch?v=qVTAB8Z2VmA" },
+                    { name: "HTTP Crash Course", url: "https://www.youtube.com/watch?v=iYM2zFP3Zn0" }
+                ],
+                time: "4-5 hrs"
+            },
+            {
+                day: "Day 5",
+                topic: "Spring Boot Setup",
+                tasks: ["Use Spring Initializr", "Set up project structure", "Learn key annotations", "Create 3 test endpoints", "Configure application.yml", "Run on localhost:8080"],
+                resources: [
+                    { name: "Spring Boot - Amigoscode", url: "https://www.youtube.com/watch?v=9SGDpanrc8U" },
+                    { name: "Spring Boot - Java Brains", url: "https://www.youtube.com/watch?v=vtPkZShrvXQ" }
+                ],
+                time: "5-6 hrs"
+            },
+            {
+                day: "Day 6",
+                topic: "Building REST APIs",
+                tasks: ["Implement 5 CRUD endpoints", "Add request validation", "Create global exception handler", "Build Account Management API", "Test with Postman", "Export Postman collection"],
+                resources: [
+                    { name: "Spring REST API - Amigoscode", url: "https://www.youtube.com/watch?v=9SGDpanrc8U" },
+                    { name: "Exception Handling - Daily Code Buffer", url: "https://www.youtube.com/watch?v=PzK4ZXa2Tbc" }
+                ],
+                time: "6-7 hrs"
+            },
+            {
+                day: "Day 7",
+                topic: "SQL & Database Design",
+                tasks: ["Complete SQLBolt exercises", "Design 3 tables with relationships", "Write 20+ SQL queries", "Create ER diagram", "Practice JOINs & aggregations", "Push schema to GitHub"],
+                resources: [
+                    { name: "SQL Full Course - freeCodeCamp", url: "https://www.youtube.com/watch?v=HXV3zeQKqGY" },
+                    { name: "SQLBolt Interactive", url: "https://sqlbolt.com/" }
+                ],
+                time: "6-7 hrs"
+            },
+            {
+                day: "Day 8",
+                topic: "Spring Boot + PostgreSQL",
+                tasks: ["Configure PostgreSQL connection", "Create JPA entities", "Implement repositories", "Build service layer with transactions", "Implement transferMoney()", "Test with database"],
+                resources: [
+                    { name: "Spring Data JPA - Daily Code Buffer", url: "https://www.youtube.com/watch?v=2KqaR37w7w8" },
+                    { name: "JPA & Hibernate - Java Brains", url: "https://www.youtube.com/watch?v=8Gv6s1i8j_Y" }
+                ],
+                time: "7-8 hrs"
+            },
+            {
+                day: "Day 9",
+                topic: "Authentication & Security",
+                tasks: ["Add Spring Security", "Implement JWT Service", "Create login/register endpoints", "Hash passwords with BCrypt", "Add role-based access control", "Test auth flow"],
+                resources: [
+                    { name: "Spring Security + JWT - Amigoscode", url: "https://www.youtube.com/watch?v=VVn9OG9nfH0" },
+                    { name: "JWT Explained", url: "https://www.youtube.com/watch?v=7Q17ubqLfaM" }
+                ],
+                time: "7-8 hrs"
+            },
+            {
+                day: "Day 10",
+                topic: "Testing & Debugging",
+                tasks: ["Write 15-20 unit tests", "Write integration tests", "Test controllers with MockMvc", "Test services with Mockito", "Achieve 80%+ coverage", "Create Postman test scripts"],
+                resources: [
+                    { name: "JUnit Testing - Amigoscode", url: "https://www.youtube.com/watch?v=Geq60OVyBPg" },
+                    { name: "Mockito Tutorial - Java Brains", url: "https://www.youtube.com/watch?v=d2FBSt0tCsI" }
+                ],
+                time: "6-7 hrs"
+            },
+            {
+                day: "Day 11",
+                topic: "System Design Basics",
+                tasks: ["Study load balancers", "Learn caching strategies", "Understand horizontal scaling", "Design a scalable system", "Create architecture diagram", "Document design decisions"],
+                resources: [
+                    { name: "System Design - ByteByteGo", url: "https://www.youtube.com/watch?v=FSR1s2b-l_I" },
+                    { name: "System Design - Gaurav Sen", url: "https://www.youtube.com/watch?v=0163cssUxLA" }
+                ],
+                time: "5-6 hrs"
+            },
+            {
+                day: "Day 12",
+                topic: "Cloud Basics (AWS)",
+                tasks: ["Sign up AWS Free Tier", "Learn EC2, S3, RDS basics", "Upload file to S3", "Create RDS PostgreSQL instance", "Connect to RDS from local", "Document with screenshots"],
+                resources: [
+                    { name: "AWS Basics - freeCodeCamp", url: "https://www.youtube.com/watch?v=ulprqHHWlng" },
+                    { name: "AWS for Beginners - TechWorld", url: "https://www.youtube.com/watch?v=JIbIYCM48to" }
+                ],
+                time: "5-6 hrs"
+            },
+            {
+                day: "Day 13",
+                topic: "Docker & Deployment",
+                tasks: ["Create Dockerfile", "Create docker-compose.yml", "Build & run containers", "Deploy to Railway/Render", "Get public URL", "Test deployed API"],
+                resources: [
+                    { name: "Docker Tutorial - TechWorld", url: "https://www.youtube.com/watch?v=3c-iBn73dDE" },
+                    { name: "Docker - freeCodeCamp", url: "https://www.youtube.com/watch?v=fqMOX6JJhGo" }
+                ],
+                time: "6-7 hrs"
+            },
+            {
+                day: "Day 14",
+                topic: "CI/CD with GitHub Actions",
+                tasks: ["Create GitHub Actions workflow", "Set up automated testing", "Configure build pipeline", "Add status badge", "Test workflow runs", "Push to GitHub"],
+                resources: [
+                    { name: "GitHub Actions - freeCodeCamp", url: "https://www.youtube.com/watch?v=R8_veQiYBjI" },
+                    { name: "CI/CD Explained - TechWorld", url: "https://www.youtube.com/watch?v=scEDHsr3APg" }
+                ],
+                time: "4-5 hrs"
+            },
+            {
+                day: "Day 15",
+                topic: "Final Project - Complete Banking System",
+                tasks: ["Build customer management", "Build account management", "Implement all transactions", "Add JWT auth", "Write 20+ tests", "Deploy to production", "Create professional README"],
+                resources: [
+                    { name: "Full Banking App - Bouali Ali", url: "https://www.youtube.com/watch?v=t5hPpPSY8cM" }
+                ],
+                time: "8-10 hrs"
+            }
+        ];
+
+        const timeMap = {
+            "2-3 hrs": 2.5,
+            "4-5 hrs": 4.5,
+            "5-6 hrs": 5.5,
+            "6-7 hrs": 6.5,
+            "7-8 hrs": 7.5,
+            "8-10 hrs": 9
+        };
+
+        // Load saved progress
+        let completedDays = JSON.parse(localStorage.getItem('completedDays')) || [];
+
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+
+            bootcampData.forEach((day, index) => {
+                const row = document.createElement('tr');
+                const isCompleted = completedDays.includes(index);
+                if (isCompleted) row.classList.add('completed-row');
+
+                row.innerHTML = `
+                    <td class="day-cell">${day.day}</td>
+                    <td class="topic-cell">${day.topic}</td>
+                    <td class="tasks-cell">
+                        <ul>
+                            ${day.tasks.map(task => `<li>${task}</li>`).join('')}
+                        </ul>
+                    </td>
+                    <td class="resources-cell">
+                        ${day.resources.map(res => 
+                            `<a href="${res.url}" target="_blank" class="resource-link">📺 ${res.name}</a><br>`
+                        ).join('')}
+                    </td>
+                    <td class="time-cell">${day.time}</td>
+                    <td class="checkbox-cell">
+                        <input type="checkbox" 
+                               class="checkbox-custom" 
+                               ${isCompleted ? 'checked' : ''}
+                               onchange="toggleDay(${index})">
+                    </td>
+                `;
+
+                tbody.appendChild(row);
+            });
+
+            updateStats();
+        }
+
+        function toggleDay(index) {
+            if (completedDays.includes(index)) {
+                completedDays = completedDays.filter(d => d !== index);
+            } else {
+                completedDays.push(index);
+            }
+            localStorage.setItem('completedDays', JSON.stringify(completedDays));
+            renderTable();
+        }
+
+        function updateStats() {
+            const totalDays = bootcampData.length;
+            const completed = completedDays.length;
+            const percentage = Math.round((completed / totalDays) * 100);
+
+            // Calculate total hours
+            const totalHours = completedDays.reduce((sum, index) => {
+                return sum + timeMap[bootcampData[index].time];
+            }, 0);
+
+            document.getElementById('completedDays').textContent = completed;
+            document.getElementById('totalHours').textContent = Math.round(totalHours);
+            document.getElementById('completionRate').textContent = percentage + '%';
+            
+            const progressFill = document.getElementById('progressFill');
+            progressFill.style.width = percentage + '%';
+            progressFill.textContent = percentage + '%';
+        }
+
+        function resetProgress() {
+            if (confirm('Are you sure you want to reset all progress? This cannot be undone.')) {
+                completedDays = [];
+                localStorage.removeItem('completedDays');
+                renderTable();
+            }
+        }
+
+        function exportToCSV() {
+            let csv = 'Day,Topic,Tasks,Resources,Time,Completed\n';
+            
+            bootcampData.forEach((day, index) => {
+                const tasks = day.tasks.join(' | ');
+                const resources = day.resources.map(r => `${r.name}: ${r.url}`).join(' | ');
+                const completed = completedDays.includes(index) ? 'Yes' : 'No';
+                
+                csv += `"${day.day}","${day.topic}","${tasks}","${resources}","${day.time}","${completed}"\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = '15-day-backend-bootcamp.csv';
+            a.click();
+        }
+
+        // Initialize
+        renderTable();
+    </script>
+</body>
+</html>
