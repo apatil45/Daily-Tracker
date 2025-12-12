@@ -15,8 +15,15 @@
             <h1>15-Day Backend Engineering Bootcamp</h1>
             <p style="margin-top: 10px; font-size: 0.9em; opacity: 0.9;">
                 <span id="syncStatus">Synced</span> | 
-                <span style="font-size: 0.85em;">Device ID: <span id="userIdDisplay"></span></span>
+                <span style="font-size: 0.85em;">User ID: <span id="userIdDisplay"></span></span>
+                <button onclick="copyUserId()" style="margin-left: 10px; padding: 4px 8px; font-size: 0.8em; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; border-radius: 4px; cursor: pointer;">Copy ID</button>
+                <button onclick="showUserIdInput()" style="margin-left: 5px; padding: 4px 8px; font-size: 0.8em; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; border-radius: 4px; cursor: pointer;">Set ID</button>
             </p>
+            <div id="userIdInputContainer" style="display: none; margin-top: 10px;">
+                <input type="text" id="userIdInput" placeholder="Enter shared User ID" style="padding: 6px 10px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.1); color: white; width: 300px;">
+                <button onclick="setUserId()" style="margin-left: 5px; padding: 6px 12px; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; border-radius: 4px; cursor: pointer;">Apply</button>
+                <button onclick="hideUserIdInput()" style="margin-left: 5px; padding: 6px 12px; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; border-radius: 4px; cursor: pointer;">Cancel</button>
+            </div>
         </div>
 
         <div class="stats">
@@ -234,8 +241,8 @@
         };
 
         // Supabase Configuration
-        const SUPABASE_URL = 'https://aqjjgmmvviozmedjgxdy.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFxampnbW12dmlvem1lZGpneGR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEzMjA5MTUsImV4cCI6MjA3Njg5NjkxNX0.XCQQfVAGDTnDqC4W6RHMd8Rmj3C8UyFUmE-S18JVLWk';
+        const SUPABASE_URL = 'https://pekmplldsiscrlzgjenw.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_EyHqEXiGubVdUNMPwYOyBA_I9YXsPze';
         
         // Initialize Supabase client
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -250,7 +257,65 @@
             return userId;
         }
         
-        const userId = getUserId();
+        let userId = getUserId();
+        
+        // Functions to manage userId for cross-device sync
+        function copyUserId() {
+            navigator.clipboard.writeText(userId).then(() => {
+                alert('User ID copied to clipboard! Paste it in other browsers to sync.');
+            }).catch(() => {
+                // Fallback for older browsers
+                const textarea = document.createElement('textarea');
+                textarea.value = userId;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                alert('User ID copied to clipboard! Paste it in other browsers to sync.');
+            });
+        }
+        
+        function showUserIdInput() {
+            document.getElementById('userIdInputContainer').style.display = 'block';
+            document.getElementById('userIdInput').value = userId;
+        }
+        
+        function hideUserIdInput() {
+            document.getElementById('userIdInputContainer').style.display = 'none';
+        }
+        
+        async function setUserId() {
+            const newUserId = document.getElementById('userIdInput').value.trim();
+            if (newUserId && newUserId.length > 0) {
+                // Save current data before switching
+                localStorage.setItem('completedDays', JSON.stringify(completedDays));
+                localStorage.setItem('completedTasks', JSON.stringify(completedTasks));
+                
+                // Set new userId
+                localStorage.setItem('bootcamp_user_id', newUserId);
+                userId = newUserId;
+                
+                // Reload data from Supabase with new userId
+                if (storageReady) {
+                    completedDays = await StorageManager.getCompletedDays();
+                    completedTasks = await StorageManager.getCompletedTasks();
+                    
+                    // Update localStorage with new data
+                    localStorage.setItem('completedDays', JSON.stringify(completedDays));
+                    localStorage.setItem('completedTasks', JSON.stringify(completedTasks));
+                }
+                
+                // Update display
+                const userIdDisplay = document.getElementById('userIdDisplay');
+                if (userIdDisplay) {
+                    userIdDisplay.textContent = userId.substring(0, 20) + '...';
+                }
+                
+                hideUserIdInput();
+                renderTable();
+                alert('User ID changed! Data synced from cloud.');
+            }
+        }
 
         // SQLite Database Manager using sql.js (for offline/local storage)
         const StorageManager = {
@@ -401,16 +466,19 @@
             },
             
             async saveCompletedDays(days) {
-                // Save to Supabase (cloud) - but don't fail if it errors
+                // Always save locally first (primary storage)
+                await this.saveCompletedDaysLocal(days);
+                
+                // Then sync to Supabase (cloud) for cross-device sync
                 try {
-                    // Delete existing
+                    // Delete existing for this user
                     const { error: deleteError } = await supabase
                         .from('completed_days')
                         .delete()
                         .eq('user_id', userId);
                     
-                    if (!deleteError && days.length > 0) {
-                        // Insert new
+                    // Insert new records
+                    if (days.length > 0) {
                         const records = days.map(dayIndex => ({
                             day_index: dayIndex,
                             user_id: userId
@@ -421,35 +489,47 @@
                             .insert(records);
                         
                         if (insertError) {
-                            console.log('Supabase insert failed (continuing with local):', insertError.message);
+                            console.log('Supabase insert failed:', insertError.message);
+                        } else {
+                            console.log('Synced to Supabase successfully');
                         }
+                    } else if (!deleteError) {
+                        // Successfully cleared if days is empty
+                        console.log('Cleared Supabase data successfully');
                     }
                 } catch (error) {
-                    // Silently continue - local storage will work
-                    console.log('Supabase sync failed (continuing with local):', error.message);
+                    console.log('Supabase sync failed:', error.message);
                 }
-                
-                // Always save locally (this is the primary storage)
-                await this.saveCompletedDaysLocal(days);
             },
 
             async saveCompletedDaysLocal(days) {
-                // Clear existing
-                this.db.run('DELETE FROM completed_days');
+                if (!this.db) return;
                 
-                // Insert new
-                const stmt = this.db.prepare('INSERT INTO completed_days (day_index, completed_at) VALUES (?, ?)');
-                const now = new Date().toISOString();
-                days.forEach(dayIndex => {
-                    stmt.run([dayIndex, now]);
-                });
-                stmt.free();
-                
-                await this.saveToIndexedDB();
+                try {
+                    // Clear existing
+                    this.db.run('DELETE FROM completed_days');
+                    
+                    // Insert new
+                    if (days.length > 0) {
+                        const stmt = this.db.prepare('INSERT INTO completed_days (day_index, completed_at) VALUES (?, ?)');
+                        const now = new Date().toISOString();
+                        days.forEach(dayIndex => {
+                            stmt.run([dayIndex, now]);
+                        });
+                        stmt.free();
+                    }
+                    
+                    // Save to IndexedDB (don't await - let it run in background)
+                    this.saveToIndexedDB().catch(err => {
+                        console.error('IndexedDB save failed:', err);
+                    });
+                } catch (error) {
+                    console.error('SQLite save failed:', error);
+                }
             },
             
             async getCompletedTasks() {
-                // Try to get from Supabase first, fallback to local
+                // Try to get from Supabase first (for cross-device sync)
                 try {
                     const { data, error } = await supabase
                         .from('completed_tasks')
@@ -457,7 +537,7 @@
                         .eq('user_id', userId)
                         .order('day_index, task_index');
                     
-                    if (!error && data && data.length > 0) {
+                    if (!error && data) {
                         const tasks = {};
                         data.forEach(row => {
                             const dayIndex = row.day_index;
@@ -467,12 +547,15 @@
                             }
                             tasks[dayIndex].push(taskIndex);
                         });
-                        // Sync to local
-                        await this.saveCompletedTasksLocal(tasks);
-                        return tasks;
+                        // If we got data from Supabase, use it and sync to local
+                        if (Object.keys(tasks).length > 0) {
+                            await this.saveCompletedTasksLocal(tasks);
+                            return tasks;
+                        }
+                    } else if (error) {
+                        console.log('Supabase query error:', error.message);
                     }
                 } catch (error) {
-                    // Silently fail and use local storage
                     console.log('Supabase sync failed, using local:', error.message);
                 }
                 
@@ -500,62 +583,76 @@
             },
             
             async saveCompletedTasks(tasks) {
-                // Save to Supabase (cloud) - but don't fail if it errors
+                // Always save locally first (primary storage)
+                await this.saveCompletedTasksLocal(tasks);
+                
+                // Then sync to Supabase (cloud) for cross-device sync
                 try {
-                    // Delete existing
+                    // Delete existing for this user
                     const { error: deleteError } = await supabase
                         .from('completed_tasks')
                         .delete()
                         .eq('user_id', userId);
                     
-                    if (!deleteError) {
-                        // Insert new
-                        const records = [];
-                        Object.keys(tasks).forEach(dayIndex => {
-                            tasks[dayIndex].forEach(taskIndex => {
-                                records.push({
-                                    day_index: parseInt(dayIndex),
-                                    task_index: parseInt(taskIndex),
-                                    user_id: userId
-                                });
+                    // Insert new records
+                    const records = [];
+                    Object.keys(tasks).forEach(dayIndex => {
+                        tasks[dayIndex].forEach(taskIndex => {
+                            records.push({
+                                day_index: parseInt(dayIndex),
+                                task_index: parseInt(taskIndex),
+                                user_id: userId
                             });
                         });
+                    });
+                    
+                    if (records.length > 0) {
+                        const { error: insertError } = await supabase
+                            .from('completed_tasks')
+                            .insert(records);
                         
-                        if (records.length > 0) {
-                            const { error: insertError } = await supabase
-                                .from('completed_tasks')
-                                .insert(records);
-                            
-                            if (insertError) {
-                                console.log('Supabase insert failed (continuing with local):', insertError.message);
-                            }
+                        if (insertError) {
+                            console.log('Supabase insert failed:', insertError.message);
+                        } else {
+                            console.log('Synced to Supabase successfully');
                         }
+                    } else if (!deleteError) {
+                        // Successfully cleared if tasks is empty
+                        console.log('Cleared Supabase data successfully');
                     }
                 } catch (error) {
-                    // Silently continue - local storage will work
-                    console.log('Supabase sync failed (continuing with local):', error.message);
+                    console.log('Supabase sync failed:', error.message);
                 }
-                
-                // Always save locally (this is the primary storage)
-                await this.saveCompletedTasksLocal(tasks);
             },
 
             async saveCompletedTasksLocal(tasks) {
-                // Clear existing
-                this.db.run('DELETE FROM completed_tasks');
+                if (!this.db) return;
                 
-                // Insert new
-                const stmt = this.db.prepare('INSERT INTO completed_tasks (day_index, task_index, completed_at) VALUES (?, ?, ?)');
-                const now = new Date().toISOString();
-                
-                Object.keys(tasks).forEach(dayIndex => {
-                    tasks[dayIndex].forEach(taskIndex => {
-                        stmt.run([parseInt(dayIndex), parseInt(taskIndex), now]);
+                try {
+                    // Clear existing
+                    this.db.run('DELETE FROM completed_tasks');
+                    
+                    // Insert new
+                    const taskEntries = Object.keys(tasks);
+                    if (taskEntries.length > 0) {
+                        const stmt = this.db.prepare('INSERT INTO completed_tasks (day_index, task_index, completed_at) VALUES (?, ?, ?)');
+                        const now = new Date().toISOString();
+                        
+                        taskEntries.forEach(dayIndex => {
+                            tasks[dayIndex].forEach(taskIndex => {
+                                stmt.run([parseInt(dayIndex), parseInt(taskIndex), now]);
+                            });
+                        });
+                        stmt.free();
+                    }
+                    
+                    // Save to IndexedDB (don't await - let it run in background)
+                    this.saveToIndexedDB().catch(err => {
+                        console.error('IndexedDB save failed:', err);
                     });
-                });
-                stmt.free();
-                
-                await this.saveToIndexedDB();
+                } catch (error) {
+                    console.error('SQLite save failed:', error);
+                }
             },
             
             async exportData() {
@@ -789,21 +886,23 @@
                 completedDays = completedDays.filter(d => d !== dayIndex);
             }
             
-            // Save immediately to localStorage
+            // Save immediately to localStorage (synchronous - instant)
             localStorage.setItem('completedDays', JSON.stringify(completedDays));
             localStorage.setItem('completedTasks', JSON.stringify(completedTasks));
             
-            // Save to database if ready
-            if (storageReady) {
-                try {
-                    await StorageManager.saveCompletedDays(completedDays);
-                    await StorageManager.saveCompletedTasks(completedTasks);
-                } catch (error) {
-                    console.error('Failed to save to database:', error);
-                }
-            }
-            
+            // Update UI immediately (don't wait for database)
             renderTable();
+            
+            // Save to database in background (async - non-blocking)
+            if (storageReady) {
+                // Don't await - let it run in background
+                StorageManager.saveCompletedDays(completedDays).catch(err => {
+                    console.error('Background save failed:', err);
+                });
+                StorageManager.saveCompletedTasks(completedTasks).catch(err => {
+                    console.error('Background save failed:', err);
+                });
+            }
         }
 
         async function toggleDay(index) {
@@ -826,21 +925,23 @@
                 }
             }
             
-            // Save immediately to localStorage
+            // Save immediately to localStorage (synchronous - instant)
             localStorage.setItem('completedDays', JSON.stringify(completedDays));
             localStorage.setItem('completedTasks', JSON.stringify(completedTasks));
             
-            // Save to database if ready
-            if (storageReady) {
-                try {
-                    await StorageManager.saveCompletedDays(completedDays);
-                    await StorageManager.saveCompletedTasks(completedTasks);
-                } catch (error) {
-                    console.error('Failed to save to database:', error);
-                }
-            }
-            
+            // Update UI immediately (don't wait for database)
             renderTable();
+            
+            // Save to database in background (async - non-blocking)
+            if (storageReady) {
+                // Don't await - let it run in background
+                StorageManager.saveCompletedDays(completedDays).catch(err => {
+                    console.error('Background save failed:', err);
+                });
+                StorageManager.saveCompletedTasks(completedTasks).catch(err => {
+                    console.error('Background save failed:', err);
+                });
+            }
         }
 
         function updateStats() {
