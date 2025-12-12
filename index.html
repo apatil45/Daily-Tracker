@@ -604,35 +604,71 @@
 
         // Initialize storage on page load
         let syncStatus = 'offline';
-        StorageManager.init().then(async () => {
-            storageReady = true;
-            
-            // Load data (will try cloud first, fallback to local)
-            completedDays = await StorageManager.getCompletedDays();
-            completedTasks = await StorageManager.getCompletedTasks();
-            
-            // Setup real-time sync
-            setupRealtimeSync();
-            syncStatus = 'online';
-            updateSyncStatus();
-            
-            // Display user ID
-            const userIdDisplay = document.getElementById('userIdDisplay');
-            if (userIdDisplay) {
-                userIdDisplay.textContent = userId.substring(0, 20) + '...';
+        
+        // Initialize immediately with localStorage fallback
+        (async function initialize() {
+            try {
+                // Try to load from localStorage first (immediate)
+                const savedDays = localStorage.getItem('completedDays');
+                const savedTasks = localStorage.getItem('completedTasks');
+                
+                if (savedDays) {
+                    completedDays = JSON.parse(savedDays);
+                }
+                if (savedTasks) {
+                    completedTasks = JSON.parse(savedTasks);
+                }
+                
+                // Render immediately with cached data
+                renderTable();
+                
+                // Then try to initialize SQLite and sync with cloud
+                try {
+                    await StorageManager.init();
+                    storageReady = true;
+                    
+                    // Load data (will try cloud first, fallback to local)
+                    const cloudDays = await StorageManager.getCompletedDays();
+                    const cloudTasks = await StorageManager.getCompletedTasks();
+                    
+                    // Merge cloud data with local (cloud takes precedence)
+                    if (cloudDays.length > 0) completedDays = cloudDays;
+                    if (Object.keys(cloudTasks).length > 0) completedTasks = cloudTasks;
+                    
+                    // Save merged data
+                    await StorageManager.saveCompletedDays(completedDays);
+                    await StorageManager.saveCompletedTasks(completedTasks);
+                    
+                    // Also save to localStorage for immediate access
+                    localStorage.setItem('completedDays', JSON.stringify(completedDays));
+                    localStorage.setItem('completedTasks', JSON.stringify(completedTasks));
+                    
+                    // Setup real-time sync
+                    setupRealtimeSync();
+                    syncStatus = 'online';
+                    updateSyncStatus();
+                    
+                    renderTable();
+                } catch (dbError) {
+                    console.error('Database initialization failed:', dbError);
+                    storageReady = false;
+                    syncStatus = 'offline';
+                    updateSyncStatus();
+                    // Keep using localStorage
+                }
+                
+                // Display user ID
+                const userIdDisplay = document.getElementById('userIdDisplay');
+                if (userIdDisplay) {
+                    userIdDisplay.textContent = userId.substring(0, 20) + '...';
+                }
+            } catch (error) {
+                console.error('Initialization failed:', error);
+                storageReady = false;
+                syncStatus = 'offline';
+                updateSyncStatus();
             }
-            
-            renderTable();
-        }).catch((error) => {
-            console.error('Storage initialization failed:', error);
-            // Fallback to localStorage if IndexedDB fails
-            completedDays = JSON.parse(localStorage.getItem('completedDays')) || [];
-            completedTasks = JSON.parse(localStorage.getItem('completedTasks')) || {};
-            storageReady = true;
-            syncStatus = 'offline';
-            updateSyncStatus();
-            renderTable();
-        });
+        })();
 
         // Update sync status indicator
         function updateSyncStatus() {
@@ -655,16 +691,8 @@
                 const dayCompletedTasks = completedTasks[index] || [];
                 const allTasksCompleted = day.tasks.length > 0 && dayCompletedTasks.length === day.tasks.length;
                 
-                // Auto-update day completion based on tasks
-                if (allTasksCompleted && !isCompleted) {
-                    if (!completedDays.includes(index)) {
-                        completedDays.push(index);
-                        if (storageReady) StorageManager.saveCompletedDays(completedDays);
-                    }
-                } else if (!allTasksCompleted && isCompleted) {
-                    completedDays = completedDays.filter(d => d !== index);
-                    if (storageReady) StorageManager.saveCompletedDays(completedDays);
-                }
+                // Auto-update day completion based on tasks (but don't save here to avoid loops)
+                // The actual saving happens in toggleTask/toggleDay functions
 
                 row.innerHTML = `
                     <td class="day-cell">${day.day}</td>
@@ -722,9 +750,31 @@
                 delete completedTasks[dayIndex];
             }
             
-            if (storageReady) {
-                await StorageManager.saveCompletedTasks(completedTasks);
+            // Update day completion status
+            const dayCompletedTasks = completedTasks[dayIndex] || [];
+            const allTasksCompleted = bootcampData[dayIndex].tasks.length > 0 && 
+                                     dayCompletedTasks.length === bootcampData[dayIndex].tasks.length;
+            
+            if (allTasksCompleted && !completedDays.includes(dayIndex)) {
+                completedDays.push(dayIndex);
+            } else if (!allTasksCompleted && completedDays.includes(dayIndex)) {
+                completedDays = completedDays.filter(d => d !== dayIndex);
             }
+            
+            // Save immediately to localStorage
+            localStorage.setItem('completedDays', JSON.stringify(completedDays));
+            localStorage.setItem('completedTasks', JSON.stringify(completedTasks));
+            
+            // Save to database if ready
+            if (storageReady) {
+                try {
+                    await StorageManager.saveCompletedDays(completedDays);
+                    await StorageManager.saveCompletedTasks(completedTasks);
+                } catch (error) {
+                    console.error('Failed to save to database:', error);
+                }
+            }
+            
             renderTable();
         }
 
@@ -735,28 +785,33 @@
             
             if (allTasksCompleted) {
                 // If all tasks are done, uncheck day (which will uncheck all tasks)
-            if (completedDays.includes(index)) {
-                completedDays = completedDays.filter(d => d !== index);
+                if (completedDays.includes(index)) {
+                    completedDays = completedDays.filter(d => d !== index);
                 }
                 // Uncheck all tasks
                 delete completedTasks[index];
-                if (storageReady) {
-                    await StorageManager.saveCompletedTasks(completedTasks);
-                }
             } else {
                 // If not all tasks done, check all tasks
                 completedTasks[index] = bootcampData[index].tasks.map((_, i) => i);
                 if (!completedDays.includes(index)) {
-                completedDays.push(index);
-            }
-                if (storageReady) {
-                    await StorageManager.saveCompletedTasks(completedTasks);
+                    completedDays.push(index);
                 }
             }
             
+            // Save immediately to localStorage
+            localStorage.setItem('completedDays', JSON.stringify(completedDays));
+            localStorage.setItem('completedTasks', JSON.stringify(completedTasks));
+            
+            // Save to database if ready
             if (storageReady) {
-                await StorageManager.saveCompletedDays(completedDays);
+                try {
+                    await StorageManager.saveCompletedDays(completedDays);
+                    await StorageManager.saveCompletedTasks(completedTasks);
+                } catch (error) {
+                    console.error('Failed to save to database:', error);
+                }
             }
+            
             renderTable();
         }
 
